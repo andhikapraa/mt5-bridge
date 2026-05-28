@@ -1,0 +1,23 @@
+# Secrets
+deploy/.env
+deploy/.env.local
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build artefacts
+*.egg-info/
+dist/
+build/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store

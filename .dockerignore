@@ -1,0 +1,20 @@
+# Source tree → image. Be paranoid; never accidentally ship secrets.
+deploy/.env
+deploy/.env.local
+.git/
+.github/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+node_modules/
+README.md
+LICENSE
+.gitignore
+.dockerignore
