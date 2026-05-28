@@ -1,0 +1,21 @@
+shim/requirements.txt
+  s_849d7e3dc007ee::t_0edb0e837d40db 1-5,14,17
+shim/Dockerfile
+  s_849d7e3dc007ee::t_ff30b99ab3eba3 8-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "ca2f88a4583448b8e5ef099f691ba69c285535c4",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
