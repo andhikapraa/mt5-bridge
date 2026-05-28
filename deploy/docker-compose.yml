@@ -3,25 +3,26 @@ services:
     image: ghcr.io/andhikapraa/mt5-bridge:latest
     container_name: mt5-bridge
     restart: unless-stopped
-    pull_policy: always   # force fresh pull from GHCR on every redeploy
+    pull_policy: always
 
-    # MANDATORY for Wine on GCP: container runtime's default seccomp profile
-    # blocks the socket syscalls Wine needs. Without these two, every Wine
-    # subprocess exits instantly with "socket : Function not implemented".
-    security_opt:
-      - seccomp:unconfined
+    # Linuxserver KasmVNC base is known to work without seccomp tweaks but
+    # SYS_PTRACE is still recommended for MT5 — Wine's NT thread emulation
+    # and MT5's anti-debug check both want it.
     cap_add:
       - SYS_PTRACE
 
-    # All ports bound to Tailscale IP — nothing reaches the public GCP interface.
     ports:
-      - "[REDACTED]:3000:3000"   # noVNC (browser desktop)
+      - "[REDACTED]:3000:3000"   # KasmVNC web UI (linuxserver base)
       - "[REDACTED]:8000:8000"   # FastAPI REST + Swagger /docs
-      - "[REDACTED]:8001:8001"   # mt5linux RPyC (for direct Python clients)
+      - "[REDACTED]:8001:8001"   # mt5linux RPyC (socat-forwarded)
 
     environment:
+      # KasmVNC auth (linuxserver convention: CUSTOM_USER + PASSWORD).
+      CUSTOM_USER:   ${CUSTOM_USER:-trader}
+      PASSWORD:      ${PASSWORD}
+
+      # FastAPI shim + auto-login.
       API_KEY:       ${API_KEY}
-      VNC_PASSWORD:  ${VNC_PASSWORD}
       MT5_LOGIN:     ${MT5_LOGIN}
       MT5_PASSWORD:  ${MT5_PASSWORD}
       MT5_SERVER:    ${MT5_SERVER}
@@ -29,15 +30,14 @@ services:
       LOG_LEVEL:     INFO
 
     volumes:
-      # Persists Wine prefix + MT5 install + install markers across restarts.
-      - mt5_data:/config
+      - mt5_state:/config
 
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 600s   # First boot: MT5 install + Wine python + pip can take ~5 min.
+      start_period: 600s     # MT5 + Python + pip first-boot install can take ~5 min
 
     deploy:
       resources:
@@ -47,4 +47,4 @@ services:
           memory: 2G
 
 volumes:
-  mt5_data:
+  mt5_state:

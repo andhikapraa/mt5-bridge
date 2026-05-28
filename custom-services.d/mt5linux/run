@@ -1,0 +1,31 @@
+#!/usr/bin/with-contenv bash
+# Wine-side mt5linux RPyC server bound to 0.0.0.0:${MT5_PORT}.
+# CORRECT mt5linux 1.0.x CLI (--host / --port / --mode), unlike upstream
+# gmag11 which still uses the removed pre-1.0 `-w` flag.
+set -euo pipefail
+
+WPY_FILE=/config/.mt5bridge/wine_python_path
+PIP_MARKER=/config/.mt5bridge/pip.ok
+
+log() { printf '[mt5linux] %s\n' "$*" >&2; }
+
+# Wait until install_mt5 cont-init finished and wrote the wine python path.
+while [[ ! -f "${PIP_MARKER}" || ! -f "${WPY_FILE}" ]]; do
+  log "waiting for install_mt5 to finish (pip.ok + wine_python_path)..."
+  sleep 5
+done
+
+WINE_PYTHON="$(cat "${WPY_FILE}")"
+if [[ ! -x "${WINE_PYTHON}" ]]; then
+  log "ERROR: wine python missing at ${WINE_PYTHON}"
+  exit 1
+fi
+
+log "starting mt5linux server"
+log "  python:  ${WINE_PYTHON}"
+log "  bind:    0.0.0.0:${MT5_PORT}"
+
+exec wine "${WINE_PYTHON}" -m mt5linux \
+  --host 0.0.0.0 \
+  --port "${MT5_PORT}" \
+  --mode threaded
