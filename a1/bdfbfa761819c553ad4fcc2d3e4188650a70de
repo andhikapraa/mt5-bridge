@@ -1,0 +1,30 @@
+skills/mt5-bridge/scripts/mt5.sh
+  s_849d7e3dc007ee::t_f325d59ec7e956 1-122
+skills/mt5-bridge/SKILL.md
+  s_849d7e3dc007ee::t_ec19f5645d2dc7 1-113
+skills/mt5-bridge/.env.example
+  s_849d7e3dc007ee::t_b6c6c85fe0bf68 1-17
+skills/mt5-bridge/REFERENCE.md
+  s_849d7e3dc007ee::t_187c5499a2f998 1-116
+README.md
+  s_849d7e3dc007ee::t_ce319579653419 303,312-316
+  s_849d7e3dc007ee::t_268dde028db224 116-143
+  s_849d7e3dc007ee::t_5aae43c524382c 16
+  s_849d7e3dc007ee::t_b394ac1ac91f39 46-47,57-62,69-94,96,99,102-108,112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "a1bdfbfa761819c553ad4fcc2d3e4188650a70de",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
