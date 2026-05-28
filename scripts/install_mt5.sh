@@ -1,21 +1,12 @@
-#!/usr/bin/with-contenv bash
-# Idempotent first-boot Wine setup. Runs ONCE before services start.
+#!/usr/bin/env bash
+# Idempotent install of MT5 + Wine Python + pip deps.
 #
-# Order:
-#   1. Skip if everything's already installed (marker check is verified
-#      against actual artefacts, not just timestamp files)
-#   2. wineboot --init  (uses the linuxserver base's Wine which Just Works)
-#   3. Download + install MT5 terminal (silent)
-#   4. Download + install Python 3.11 (Windows 32-bit) at C:\Python311
-#   5. pip install MetaTrader5 + mt5linux + pywin32 into Wine python
-#
-# The linuxserver base sets WINEPREFIX=/config/.wine and runs this script as
-# root before transitioning to the abc user for services, so we have write
-# perms to the persisted /config volume.
+# Designed to be called from the mt5linux SERVICE (not cont-init), because
+# wineboot needs a display and KasmVNC isn't up during cont-init. By the time
+# this runs we're a service, KasmVNC is up, DISPLAY is set, and we're running
+# as abc (the linuxserver user that owns /config) — no chown gymnastics needed.
 set -euo pipefail
 
-# cont-init.d strips most env vars; re-export Wine controls explicitly so
-# they reach the wine subprocesses we spawn.
 export WINEPREFIX="${WINEPREFIX:-/config/.wine}"
 export WINEDEBUG="${WINEDEBUG:--all}"
 export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-mscoree,mshtml=}"
@@ -32,26 +23,14 @@ WINEPATH_FILE="${MARKER_DIR}/wine_python_path"
 log() { printf '[install_mt5] %s\n' "$*" >&2; }
 trap 'log "FAILED line $LINENO: rc=$? cmd: $BASH_COMMAND"' ERR
 
-# Wine refuses to use a prefix not owned by the current user. cont-init runs
-# as root, but linuxserver chowns /config to abc (911:911). Take ownership
-# for the install, then hand it back so services (which run as abc) can use it.
-log "taking /config ownership for install"
-chown -R root:root /config
-
-# Restore on exit (whether success or failure). abc is the linuxserver UID 911.
-restore_owner() {
-  log "restoring /config ownership to abc:abc"
-  chown -R abc:abc /config || true
-}
-trap 'restore_owner; log "FAILED line $LINENO: rc=$? cmd: $BASH_COMMAND"' ERR
-trap 'restore_owner' EXIT
-
-# Reconcile: a stale marker without its artefact is worse than no marker.
-[[ -f "${MARKER_DIR}/pip.ok"   && ! -x "${WINE_PYTHON}" ]] && rm -f "${MARKER_DIR}/pip.ok"
+# Reconcile stale markers.
+[[ -f "${MARKER_DIR}/pip.ok"    && ! -x "${WINE_PYTHON}" ]] && rm -f "${MARKER_DIR}/pip.ok"
 [[ -f "${MARKER_DIR}/python.ok" && ! -x "${WINE_PYTHON}" ]] && rm -f "${MARKER_DIR}/python.ok"
-[[ -f "${MARKER_DIR}/mt5.ok"   && ! -f "${MT5_EXE}" ]] && rm -f "${MARKER_DIR}/mt5.ok"
+[[ -f "${MARKER_DIR}/mt5.ok"    && ! -f "${MT5_EXE}" ]] && rm -f "${MARKER_DIR}/mt5.ok"
 
 log "===== state ====="
+log "user:         $(id)"
+log "DISPLAY:      ${DISPLAY:-unset}"
 log "PREFIX:       ${PREFIX}"
 log "MT5_EXE:      $([[ -f ${MT5_EXE} ]] && echo present || echo MISSING)"
 log "WINE_PYTHON:  $([[ -x ${WINE_PYTHON} ]] && echo present || echo MISSING)"
@@ -60,9 +39,9 @@ log "================="
 
 # ---- 1. Wineboot ----
 if [[ ! -f "${PREFIX}/system.reg" ]]; then
-  log "wineboot --init..."
+  log "wineboot --init (timeout 180s)..."
   timeout 180 wine wineboot --init 2>&1 | sed 's/^/[wineboot] /' >&2 || {
-    log "wineboot rc=$? — continuing; we'll see if subsequent steps work"
+    log "wineboot rc=$? — continuing"
   }
 fi
 
@@ -72,7 +51,7 @@ if [[ ! -f "${MT5_EXE}" ]]; then
   curl -fsSL --connect-timeout 10 --max-time 180 \
     -o /tmp/mt5setup.exe \
     "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe"
-  log "installing MT5 (silent, can take ~60s)..."
+  log "installing MT5 (silent, ~60s)..."
   timeout 300 wine /tmp/mt5setup.exe /auto 2>&1 | sed 's/^/[mt5setup] /' >&2 || true
   rm -f /tmp/mt5setup.exe
   for _ in $(seq 1 60); do [[ -f "${MT5_EXE}" ]] && break; sleep 2; done
@@ -123,4 +102,4 @@ if [[ ! -f "${MARKER_DIR}/pip.ok" ]]; then
 fi
 
 printf '%s\n' "${WINE_PYTHON}" > "${WINEPATH_FILE}"
-log "install complete. /config/.wine ready for mt5linux."
+log "install complete."

@@ -27,7 +27,7 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
       ca-certificates curl wget gnupg2 \
       python3 python3-pip python3-venv \
-      supervisor net-tools socat tini procps; \
+      net-tools socat procps x11-utils; \
     install -d -m 0755 /etc/apt/keyrings; \
     wget -qO /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key; \
     wget -qO /etc/apt/sources.list.d/winehq-bookworm.sources \
@@ -48,15 +48,17 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 # ---- App code ----
 WORKDIR /app
 COPY api/                 /app/api/
+COPY scripts/             /app/scripts/
 COPY requirements-wine.txt /app/requirements-wine.txt
+RUN chmod +x /app/scripts/*.sh
 
-# ---- linuxserver s6 extension points ----
-# /custom-cont-init.d/ runs once at boot before services. We use it to install
-# MT5 + Wine python + pip deps into /config/.wine (idempotent, marker-guarded).
-# /custom-services.d/<name>/run is launched as a long-running service.
-COPY custom-cont-init.d/  /custom-cont-init.d/
+# ---- linuxserver custom services ----
+# /custom-services.d/<name> is launched as a long-running service AFTER
+# linuxserver's core services (KasmVNC, etc) come up — so DISPLAY is set
+# and Wine can actually open windows during install. The mt5linux service
+# performs first-boot install internally; no cont-init scripts needed.
 COPY custom-services.d/   /custom-services.d/
-RUN chmod +x /custom-cont-init.d/* /custom-services.d/*
+RUN chmod +x /custom-services.d/*
 
 EXPOSE 3000 8000 8001
 

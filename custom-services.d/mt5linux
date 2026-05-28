@@ -1,7 +1,8 @@
 #!/usr/bin/with-contenv bash
-# Wine-side mt5linux RPyC server bound to 0.0.0.0:${MT5_PORT}.
-# CORRECT mt5linux 1.0.x CLI (--host / --port / --mode), unlike upstream
-# gmag11 which still uses the removed pre-1.0 `-w` flag.
+# Wine-side mt5linux RPyC server. Also runs first-boot install via
+# scripts/install_mt5.sh because wineboot needs a display, and the only
+# point at which DISPLAY is reliably up is AFTER KasmVNC has started its
+# own service — i.e. inside another service like this one (not cont-init).
 set -euo pipefail
 
 WPY_FILE=/config/.mt5bridge/wine_python_path
@@ -9,11 +10,26 @@ PIP_MARKER=/config/.mt5bridge/pip.ok
 
 log() { printf '[mt5linux] %s\n' "$*" >&2; }
 
-# Wait until install_mt5 cont-init finished and wrote the wine python path.
-while [[ ! -f "${PIP_MARKER}" || ! -f "${WPY_FILE}" ]]; do
-  log "waiting for install_mt5 to finish (pip.ok + wine_python_path)..."
-  sleep 5
+# Wait for KasmVNC's X display. Linuxserver KasmVNC binds DISPLAY=:0.
+: "${DISPLAY:=:0}"
+export DISPLAY
+log "waiting for X display ${DISPLAY}..."
+for _ in $(seq 1 60); do
+  if xdpyinfo -display "${DISPLAY}" >/dev/null 2>&1; then
+    log "X display ${DISPLAY} is up"
+    break
+  fi
+  sleep 2
 done
+
+# First-boot install (idempotent). Skip the whole thing once pip.ok exists.
+if [[ ! -f "${PIP_MARKER}" ]]; then
+  log "running install_mt5.sh..."
+  if ! /app/scripts/install_mt5.sh; then
+    log "install_mt5 failed — service will retry on s6 restart"
+    exit 1
+  fi
+fi
 
 WINE_PYTHON="$(cat "${WPY_FILE}")"
 if [[ ! -x "${WINE_PYTHON}" ]]; then
