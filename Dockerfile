@@ -49,6 +49,7 @@ RUN chmod +x /app/scripts/*.sh
 ENV WINEPREFIX=/config/.wine \
     WINEARCH=win64 \
     WINEDEBUG=-all \
+    WINEDLLOVERRIDES="mscoree,mshtml=" \
     DISPLAY=:1 \
     PYTHONUNBUFFERED=1 \
     MT5_HOST=127.0.0.1 \
