@@ -29,7 +29,27 @@ _TIMEFRAME = {
 }
 _ORDER_TYPE = {"BUY": 0, "SELL": 1}
 _TRADE_ACTION_DEAL = 1
-_ORDER_FILLING_IOC = 2
+
+# MT5 filling mode enum values:
+_FILL_FOK = 0  # Fill or Kill
+_FILL_IOC = 1  # Immediate or Cancel
+_FILL_RETURN = 2  # Return — for pending orders, NOT market orders
+_FILL_BOC = 3  # Book or Cancel
+
+# Symbol filling_mode is a bitmask (1=FOK, 2=IOC, 4=BOC). Try in order of
+# what brokers most commonly support, picking the first match.
+_FILL_PREFERENCE = [(_FILL_FOK, 1), (_FILL_IOC, 2), (_FILL_BOC, 4)]
+
+
+def _pick_filling_mode(symbol_filling_mask: int | None) -> int:
+    """Choose a compatible filling mode for a market order from the symbol's
+    declared bitmask. Falls back to FOK if the mask is missing/zero."""
+    if not symbol_filling_mask:
+        return _FILL_FOK
+    for mode, bit in _FILL_PREFERENCE:
+        if symbol_filling_mask & bit:
+            return mode
+    return _FILL_FOK
 
 from contextlib import asynccontextmanager
 
@@ -136,10 +156,17 @@ async def positions() -> dict[str, Any]:
 
 @app.post("/order", dependencies=[Depends(require_api_key)], tags=["trade"])
 async def place_order(req: OrderRequest) -> dict[str, Any]:
+    # Fetch the symbol's full metadata + a fresh tick in parallel — we need
+    # tick.ask/bid for the price and symbol.filling_mode to pick a filling
+    # mode the broker actually supports (hardcoded IOC/RETURN was rejected
+    # by HF Markets with retcode 10030 "Unsupported filling mode").
+    sym = await proxy.call("symbol_info", req.symbol)
     tick = await proxy.call("symbol_info_tick", req.symbol)
-    if tick is None:
+    if sym is None or tick is None:
         raise HTTPException(404, f"symbol {req.symbol!r} not found")
+
     price = tick.ask if req.order_type == "BUY" else tick.bid
+    fill_mode = _pick_filling_mode(getattr(sym, "filling_mode", None))
 
     request = {
         "action":       _TRADE_ACTION_DEAL,
@@ -150,11 +177,48 @@ async def place_order(req: OrderRequest) -> dict[str, Any]:
         "deviation":    req.deviation,
         "magic":        req.magic,
         "comment":      req.comment,
-        "type_filling": _ORDER_FILLING_IOC,
+        "type_filling": fill_mode,
     }
     if req.sl is not None: request["sl"] = req.sl
     if req.tp is not None: request["tp"] = req.tp
 
+    result = await proxy.call("order_send", request)
+    if result is None:
+        err = await proxy.call("last_error")
+        raise HTTPException(502, f"order_send returned None: {err}")
+    return _as_dict(result)
+
+
+@app.post("/positions/{ticket}/close", dependencies=[Depends(require_api_key)], tags=["trade"])
+async def close_position(ticket: int, deviation: int = 50) -> dict[str, Any]:
+    """Close an open position by ticket. Sends a counter-DEAL bound to the
+    position id, which works in both netting and hedging accounts."""
+    positions = await proxy.call("positions_get", ticket=ticket)
+    if not positions:
+        raise HTTPException(404, f"no open position with ticket {ticket}")
+    p = positions[0]
+    sym = await proxy.call("symbol_info", p.symbol)
+    tick = await proxy.call("symbol_info_tick", p.symbol)
+    if sym is None or tick is None:
+        raise HTTPException(502, f"symbol {p.symbol!r} info unavailable")
+
+    # Position type 0=BUY, 1=SELL. Close = opposite side at current opposite price.
+    close_type = 1 if p.type == 0 else 0
+    close_price = tick.bid if close_type == 1 else tick.ask
+    fill_mode = _pick_filling_mode(getattr(sym, "filling_mode", None))
+
+    request = {
+        "action":       _TRADE_ACTION_DEAL,
+        "symbol":       p.symbol,
+        "volume":       p.volume,
+        "type":         close_type,
+        "position":     ticket,
+        "price":        close_price,
+        "deviation":    deviation,
+        "magic":        p.magic,
+        "comment":      "mt5-bridge close",
+        "type_filling": fill_mode,
+    }
     result = await proxy.call("order_send", request)
     if result is None:
         err = await proxy.call("last_error")
