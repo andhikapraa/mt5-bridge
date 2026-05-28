@@ -1,0 +1,19 @@
+README.md
+  s_849d7e3dc007ee::t_7472d5e08d45af 3,5,7-8,10,12,14-25,27-45,47-48,50-56,60,62-65,67-68,70-71,74,76-80,84-96,98-109,111,113,116-119,122-128,131-183,185,187-256,259-264,267-282,284,288
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "49805c1ed5094b4c31b20304deaf8a7526df22ce",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
