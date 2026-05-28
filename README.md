@@ -13,6 +13,7 @@ Two-container Docker stack: **MT5 + Wine** on one side, **FastAPI shim** on the 
 
 - [What you get](#what-you-get)
 - [Quick start](#quick-start)
+- [Agent skill (Claude / Cursor / Codex / …)](#agent-skill-claude--cursor--codex--)
 - [REST endpoints](#rest-endpoints)
 - [WebSocket](#websocket)
 - [Configuration](#configuration)
@@ -42,7 +43,8 @@ Two-container Docker stack: **MT5 + Wine** on one side, **FastAPI shim** on the 
 > [!IMPORTANT]
 > Wine inside Docker needs the host's default seccomp profile relaxed. Without `security_opt: [seccomp:unconfined]`, every Wine subprocess fails with `wine: socket : Function not implemented` and MT5 will never finish installing. This is in the compose file already — don't strip it.
 
-**1. Clone and configure.**
+### 1. Clone and configure
+
 ```bash
 git clone https://github.com/andhikapraa/mt5-bridge
 cd mt5-bridge/deploy
@@ -52,28 +54,92 @@ $EDITOR .env   # fill API_KEY, PASSWORD, and MT5_LOGIN/PASSWORD/SERVER
 
 Generate strong secrets with `openssl rand -hex 32`.
 
-**2. Start it.**
+**Finding your broker's `MT5_SERVER`:** open the MT5 desktop app (any machine, even on Windows) → File → Login to Trade Account → the **Server** dropdown lists every endpoint your broker supports. Copy the exact string (e.g. `HFMarketsGlobal-Live15`, `Exness-MT5Trial7`, `XMGlobal-Demo 3`). If you don't have the desktop app, your broker's website usually publishes the list.
+
+**Different broker than HF Markets?** Set `MT5_SETUP_URL` in `.env` to your broker's branded installer URL (find it on their site under "MT5 download"). Otherwise the default lands on HF's login dialog — works, just shows the wrong logo. Or use the vanilla MetaQuotes installer: `https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe`.
+
+### 2. Start it
+
 ```bash
 docker compose up -d
 ```
 
 First boot installs Mono → MT5 → Python 3.9 in Wine → pip deps → mt5linux server. **Allow ~10 minutes.** State persists in the `mt5_state` named volume; subsequent restarts skip install entirely.
 
-**3. Verify.**
+Watch the install progress in the logs:
 ```bash
-# Health (no auth)
+docker compose logs -f mt5
+```
+
+You'll see `[1/7] Mono installed.` through `[7/7] mt5linux server is running on port 8001.` (the `[7/7] FAILED` line is a benign timing false-positive — the next line `INFO:SLAVE/8001:server started` confirms it actually started).
+
+### 3. First-time MT5 setup (one time, via KasmVNC)
+
+Open the noVNC desktop in a browser:
+```
+http://<host>:3000
+```
+Log in with user `trader`, password from `.env`. You'll see the MT5 terminal — already logged in if `MT5_LOGIN/PASSWORD/SERVER` were set correctly. If not, **File → Login to Trade Account**, paste your credentials.
+
+> [!IMPORTANT]
+> **Enable algorithmic trading or `/order` will fail.** In MT5: **Tools → Options → Expert Advisors → check "Allow algorithmic trading"** → OK. Verify with:
+> ```bash
+> curl -H "X-API-Key: $API_KEY" http://<host>:8000/account | grep trade_allowed
+> ```
+> Must show `"trade_allowed": true`. Without this, `/order` posts return `retcode: 10027` (autotrading disabled).
+
+After this is done you can stop port 3000 entirely: comment out the `3000:3000` line in compose and redeploy — VNC only needed for first setup and emergency debugging.
+
+### 4. Verify end-to-end
+
+```bash
+# Health (no auth) — should show mt5_connected: true
 curl http://<host>:8000/health
 
-# Live account info (X-API-Key required)
+# Live account
 curl -H "X-API-Key: $API_KEY" http://<host>:8000/account
 
-# Open Swagger
+# What symbols does your broker expose? (cent accounts add 'c', mini 'm', etc.)
+curl -H "X-API-Key: $API_KEY" http://<host>:8000/symbols
+
+# Live tick
+curl -H "X-API-Key: $API_KEY" http://<host>:8000/symbols/EURUSD/tick
+
+# Swagger UI
 open http://<host>:8000/docs
 ```
 
-If `mt5_connected: false` persists after 10 minutes, open KasmVNC at `http://<host>:3000` (user `trader`, password from `.env`) and check whether MT5 is actually running. Auto-login uses your `MT5_LOGIN/PASSWORD/SERVER` env; manual login from VNC works too and persists in the volume.
+If `mt5_connected: false` persists after 10 minutes, check VNC: MT5 may have crashed or hit a login prompt that needs manual interaction.
 
 ---
+
+## Agent skill (Claude / Cursor / Codex / …)
+
+This repo ships a [Vercel-style agent skill](https://github.com/vercel-labs/skills) at [`skills/mt5-bridge/`](./skills/mt5-bridge/) — installable into any of 50+ coding agents (Claude Code, Cursor, Codex, Amp, Cline, OpenCode, etc.):
+
+```bash
+# Install globally for Claude Code
+npx skills add andhikapraa/mt5-bridge -g -a claude-code
+
+# Or interactively — picks your agent
+npx skills add andhikapraa/mt5-bridge
+```
+
+Then fill in the skill's `.env`:
+
+```bash
+# Find install location:
+npx skills list mt5-bridge
+
+# Copy template and edit:
+cd <skill-install-dir>
+cp .env.example .env
+$EDITOR .env   # set BASE_URL + API_KEY (matches your deploy/.env API_KEY)
+```
+
+The skill ships a `mt5` CLI wrapper that the agent uses for everything: `mt5 account`, `mt5 tick XAUUSD`, `mt5 candles XAUUSD H1 10`, `mt5 order BUY XAUUSD 0.01 --confirm`, etc. Built-in guardrails: max-volume cap, `--confirm` required on every write, never invents SL/TP, refuses sub-minute scalping. See [`skills/mt5-bridge/SKILL.md`](./skills/mt5-bridge/SKILL.md) for the agent-facing prompt and [`skills/mt5-bridge/REFERENCE.md`](./skills/mt5-bridge/REFERENCE.md) for the full endpoint reference.
+
+After that you can just tell the agent things like *"what's my balance"*, *"what's gold doing right now"*, or *"buy 0.01 gold"* — and it'll route through the skill, ask you to confirm before any trade, then place it.
 
 ## REST endpoints
 
@@ -234,7 +300,7 @@ A €5/mo VPS handles it. Avoid GCP container-runtime VMs unless you can disable
 mt5-bridge/
 ├── mt5/                          # MT5 + Wine container
 │   ├── Dockerfile                # FROM gmag11/metatrader5_vnc
-│   └── start.sh                  # patched: mt5linux 0.1.9 pin + HF installer + auto-discover
+│   └── start.sh                  # patched: mt5linux 0.1.9 pin + branded installer + auto-discover
 ├── shim/                         # FastAPI REST/WS container
 │   ├── Dockerfile                # python:3.12-slim + uvicorn
 │   ├── requirements.txt          # mt5linux installed via --no-deps (skips its py3.12-incompatible numpy pin)
@@ -243,6 +309,11 @@ mt5-bridge/
 │       ├── auth.py               # X-API-Key dependency
 │       ├── models.py             # OrderRequest, CandlesRequest, HealthResponse
 │       └── mt5_proxy.py          # mt5linux client w/ reconnect + value coercion
+├── skills/mt5-bridge/            # Agent skill — installable via `npx skills add andhikapraa/mt5-bridge`
+│   ├── SKILL.md                  # agent-facing prompt + workflows + safety rules
+│   ├── REFERENCE.md              # full endpoint reference (loaded on demand)
+│   ├── scripts/mt5.sh            # CLI wrapper the skill uses
+│   └── .env.example              # template for BASE_URL + API_KEY
 ├── deploy/
 │   ├── docker-compose.yml        # two-service stack
 │   └── .env.example              # template
