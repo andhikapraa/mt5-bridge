@@ -1,0 +1,20 @@
+shim/api/main.py
+  s_849d7e3dc007ee::t_b2e57592dbd77d 32-52
+  s_849d7e3dc007ee::t_a96a828a4749b6 159-163,165,167,169,180,187-221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "7ffda327c94ee9ac6232c12aabcf607c1f9bec99",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
