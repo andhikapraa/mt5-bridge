@@ -1,0 +1,31 @@
+custom-services.d/api/run
+  s_849d7e3dc007ee::t_532ac73b20c7c7 1-10
+custom-services.d/mt5linux/run
+  s_849d7e3dc007ee::t_ede072d896ae94 1-4,7-8,10,12,14,19,24
+custom-cont-init.d/50-install-mt5
+  s_849d7e3dc007ee::t_d5ac72c556f3ee 1-2,4-14,17,22,24,27,29-32,34-39,41,43-46,49,51,55,58,60-62,65,69,71,78,81,83,88-90,93-94,98,100-101,105-106
+Dockerfile
+  s_849d7e3dc007ee::t_5b636f8a7cd680 4-8,10,14-23,28-29,34,38,41,43-45,47,49,52-58
+deploy/docker-compose.yml
+  s_849d7e3dc007ee::t_117cb276522292 6,8-10,15,17,20-24,33,40,50
+deploy/.env.example
+  s_849d7e3dc007ee::t_11de42d4e68d6a 4-5,8-9,12
+custom-services.d/socat-8001/run
+  s_849d7e3dc007ee::t_2ec90ef2cd7997 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1d2797598cef18b9f35043216f456bbb50f27444",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
