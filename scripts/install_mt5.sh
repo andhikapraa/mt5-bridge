@@ -19,7 +19,11 @@ PIP_MARKER="${MARKER_DIR}/pip.ok"
 
 mkdir -p "${MARKER_DIR}"
 
-log() { printf '[install_mt5] %s\n' "$*"; }
+log() { printf '[install_mt5] %s\n' "$*" >&2; }
+
+# Trap errors so we know WHICH line failed (set -e suppresses the line info
+# otherwise). Dumps line, command, and exit code.
+trap 'log "FAILED on line $LINENO: exit $? running: $BASH_COMMAND"' ERR
 
 # Give xvfb a moment to bind :1 (supervisor priorities run us after it but
 # socket creation isn't instantaneous).
