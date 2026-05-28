@@ -31,10 +31,24 @@ _ORDER_TYPE = {"BUY": 0, "SELL": 1}
 _TRADE_ACTION_DEAL = 1
 _ORDER_FILLING_IOC = 2
 
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    # Eagerly establish the mt5linux RPyC connection so the first /health
+    # request doesn't have to do the cold handshake within its own timeout.
+    # Runs in the background so we don't block uvicorn startup if mt5linux
+    # isn't reachable yet.
+    asyncio.create_task(proxy.warmup())
+    yield
+
+
 app = FastAPI(
     title="mt5-bridge",
     description="MetaTrader 5 REST + WebSocket bridge over mt5linux.",
     version="0.1.0",
+    lifespan=_lifespan,
 )
 
 _allowed = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
