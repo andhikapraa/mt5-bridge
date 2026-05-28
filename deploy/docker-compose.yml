@@ -1,50 +1,79 @@
+# Two-service stack:
+#   mt5    → gmag11/metatrader5_vnc with patched start.sh (mt5linux pinned to 0.1.9)
+#   shim   → FastAPI REST/WebSocket front, talks to mt5 over the docker network
+#
+# Designed for Contabo / standard Linux Docker hosts (no GCP seccomp tweaks needed).
+# Use Dokploy's built-in Traefik for HTTPS at the public hostname.
+
 services:
   mt5:
-    image: ghcr.io/andhikapraa/mt5-bridge:latest
-    container_name: mt5-bridge
+    image: ghcr.io/andhikapraa/mt5-bridge:latest-mt5
+    container_name: mt5
     restart: unless-stopped
     pull_policy: always
 
-    # Linuxserver KasmVNC base is known to work without seccomp tweaks but
-    # SYS_PTRACE is still recommended for MT5 — Wine's NT thread emulation
-    # and MT5's anti-debug check both want it.
+    # MT5's anti-debug check needs ptrace. Wine generally happy on Contabo
+    # without seccomp tweaks; SYS_PTRACE is the only cap we need.
     cap_add:
       - SYS_PTRACE
 
-    ports:
-      - "[REDACTED]:3000:3000"   # KasmVNC web UI (linuxserver base)
-      - "[REDACTED]:8000:8000"   # FastAPI REST + Swagger /docs
-      - "[REDACTED]:8001:8001"   # mt5linux RPyC (socat-forwarded)
-
     environment:
-      # KasmVNC auth (linuxserver convention: CUSTOM_USER + PASSWORD).
+      # KasmVNC web auth (linuxserver base convention).
       CUSTOM_USER:   ${CUSTOM_USER:-trader}
       PASSWORD:      ${PASSWORD}
 
-      # FastAPI shim + auto-login.
-      API_KEY:       ${API_KEY}
-      MT5_LOGIN:     ${MT5_LOGIN}
-      MT5_PASSWORD:  ${MT5_PASSWORD}
-      MT5_SERVER:    ${MT5_SERVER}
-      ALLOWED_ORIGINS: "http://[REDACTED]:8000,http://localhost:8000"
-      LOG_LEVEL:     INFO
-
     volumes:
       - mt5_state:/config
+
+    expose:
+      - "8001"          # mt5linux RPyC — only on docker network, not host
+    ports:
+      - "3000:3000"     # KasmVNC web (so you can VNC in for first-time login)
+
+    healthcheck:
+      test: ["CMD-SHELL", "ss -tuln | grep -q ':8001' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 600s
+
+    deploy:
+      resources:
+        limits: { memory: 4G }
+        reservations: { memory: 2G }
+
+  shim:
+    image: ghcr.io/andhikapraa/mt5-bridge:latest-shim
+    container_name: shim
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - mt5
+
+    environment:
+      MT5_HOST:   mt5         # docker network DNS
+      MT5_PORT:   "8001"
+      API_KEY:    ${API_KEY}
+      MT5_LOGIN:  ${MT5_LOGIN}
+      MT5_PASSWORD: ${MT5_PASSWORD}
+      MT5_SERVER: ${MT5_SERVER}
+      ALLOWED_ORIGINS: "*"
+      LOG_LEVEL:  INFO
+
+    ports:
+      - "8000:8000"     # FastAPI REST + Swagger /docs
 
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 600s     # MT5 + Python + pip first-boot install can take ~5 min
+      start_period: 30s
 
     deploy:
       resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
+        limits: { memory: 512M }
+        reservations: { memory: 128M }
 
 volumes:
   mt5_state:

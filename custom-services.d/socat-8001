@@ -1,6 +1,0 @@
-#!/usr/bin/with-contenv bash
-# Expose the internal mt5linux RPyC server (127.0.0.1:${MT5_PORT}) on the
-# externally-published TCP port 8001 so non-FastAPI Python clients can
-# connect directly via the mt5linux library.
-set -euo pipefail
-exec socat TCP-LISTEN:8001,reuseaddr,fork TCP:127.0.0.1:"${MT5_PORT}"

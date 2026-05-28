@@ -1,0 +1,17 @@
+# Host Python deps for the FastAPI shim. Strict pins; build fails loud
+# if any wheel is missing for Python 3.12.
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+python-dotenv==1.0.1
+httpx==0.28.1
+
+# mt5linux client. Pinned to 0.1.9 to match the version we install on the
+# Wine side (mt5 service uses pinned 0.1.9 too — gmag11's 1.0.x removed the
+# `-w` CLI flag the server startup needs).
+mt5linux==0.1.9
+rpyc==5.2.3
+plumbum==1.7.0
+numpy
