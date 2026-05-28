@@ -5,7 +5,6 @@
 #   server, and the script breaks at step [7/7] with "Unknown switch -w".
 
 # Configuration variables
-mt5file='/config/.wine/drive_c/Program Files/MetaTrader 5/terminal64.exe'
 WINEPREFIX='/config/.wine'
 WINEDEBUG='-all'
 wine_executable="wine"
@@ -15,7 +14,21 @@ mt5server_port="8001"
 MT5_CMD_OPTIONS="${MT5_CMD_OPTIONS:-}"
 mono_url="https://dl.winehq.org/wine/wine-mono/10.3.0/wine-mono-10.3.0-x86.msi"
 python_url="https://www.python.org/ftp/python/3.9.13/python-3.9.13.exe"
-mt5setup_url="https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe"
+
+# Broker-branded MT5 installer. Comes pre-configured with the broker's server
+# so the first launch lands directly on the login dialog for HFMarketsGlobal,
+# rather than the MetaQuotes generic terminal that needs server selection.
+# Override with MT5_SETUP_URL env var for other brokers.
+mt5setup_url="${MT5_SETUP_URL:-https://download.terminal.free/cdn/web/12018/mt5/hfmarketsglobal5setup.exe}"
+
+# Auto-discover terminal64.exe across any "Program Files" subfolder, since
+# broker-branded installers use names like "HF Markets Global MT5" instead
+# of the vanilla "MetaTrader 5".
+find_mt5() {
+    find "/config/.wine/drive_c/Program Files" -maxdepth 3 \
+        -type f -name terminal64.exe 2>/dev/null | head -1
+}
+mt5file="$(find_mt5)"
 
 show_message() { echo "$1"; }
 
@@ -49,20 +62,22 @@ else
 fi
 
 # MT5
-if [ -e "$mt5file" ]; then
+if [ -n "$mt5file" ] && [ -e "$mt5file" ]; then
     show_message "[2/7] $mt5file already exists."
 else
-    show_message "[2/7] MT5 not installed. Installing..."
+    show_message "[2/7] MT5 not installed. Installing from ${mt5setup_url}..."
     $wine_executable reg add "HKEY_CURRENT_USER\\Software\\Wine" /v Version /t REG_SZ /d "win10" /f
     show_message "[3/7] Downloading MT5 installer..."
-    curl -o /config/.wine/drive_c/mt5setup.exe $mt5setup_url
+    curl -L -o /config/.wine/drive_c/mt5setup.exe "$mt5setup_url"
     show_message "[3/7] Installing MetaTrader 5..."
     $wine_executable "/config/.wine/drive_c/mt5setup.exe" "/auto" &
     wait
     rm -f /config/.wine/drive_c/mt5setup.exe
+    # Re-discover after install — the broker installer chooses its own folder.
+    mt5file="$(find_mt5)"
 fi
 
-if [ -e "$mt5file" ]; then
+if [ -n "$mt5file" ] && [ -e "$mt5file" ]; then
     show_message "[4/7] $mt5file installed. Running MT5..."
     $wine_executable "$mt5file" $MT5_CMD_OPTIONS &
 else
