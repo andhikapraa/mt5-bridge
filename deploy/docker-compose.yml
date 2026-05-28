@@ -3,6 +3,7 @@ services:
     image: ghcr.io/andhikapraa/mt5-bridge:latest
     container_name: mt5-bridge
     restart: unless-stopped
+    pull_policy: always   # force fresh pull from GHCR on every redeploy
 
     # MANDATORY for Wine on GCP: container runtime's default seccomp profile
     # blocks the socket syscalls Wine needs. Without these two, every Wine
