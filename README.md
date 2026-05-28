@@ -33,7 +33,7 @@ Two-container Docker stack: **MT5 + Wine** on one side, **FastAPI shim** on the 
 - **mt5linux RPyC** (internal) — same RPyC server `gmag11` ships, **pinned to mt5linux 0.1.9** so the `-w` startup flag actually works.
 - **KasmVNC** on `:3000` — browser desktop for the one-time MT5 install + broker login.
 - **`X-API-Key` header auth** on every REST/WS call. KasmVNC has its own user/pass.
-- **Verified end-to-end on a live HF Markets cent account** — placed and closed a real order through `/order` and `/positions/{ticket}/close`.
+- **Verified end-to-end on a live broker account** — placed and closed a real order through `/order` and `/positions/{ticket}/close`.
 
 ---
 
@@ -141,13 +141,13 @@ All via env vars in `deploy/.env`.
 | `CUSTOM_USER` |  | `trader` | KasmVNC web auth username. |
 | `MT5_LOGIN` |  | — | Broker account number. If set with PASSWORD+SERVER, shim auto-logs in. |
 | `MT5_PASSWORD` |  | — | Broker account password. |
-| `MT5_SERVER` |  | — | Broker server name (e.g. `HFMarketsGlobal-Live15`). Find it via MT5 desktop → File → Login. |
-| `MT5_SETUP_URL` |  | HFMarkets installer | Override to use any broker's branded MT5 installer or the vanilla `mt5setup.exe`. |
+| `MT5_SERVER` |  | — | Broker server name (e.g. `YourBroker-Demo`, `Exness-MT5Trial7`). Find it via MT5 desktop → File → Login. |
+| `MT5_SETUP_URL` |  | broker-branded installer | URL of a broker's branded MT5 installer. Defaults to one example broker — override for yours (or use the vanilla `https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe`). |
 | `ALLOWED_ORIGINS` |  | `*` | CORS origins for the REST API (browser callers only). |
 | `LOG_LEVEL` |  | `INFO` | Shim FastAPI log level. |
 
 > [!WARNING]
-> The default `MT5_SETUP_URL` points at HF Markets' branded installer. For other brokers, override it with their installer URL — branded installers land directly on the broker's login dialog (vs the MetaQuotes generic that needs server selection). The script auto-discovers `terminal64.exe` regardless of which install folder the broker uses.
+> `MT5_SETUP_URL` defaults to a specific broker's branded installer. **Override it for your broker** — branded installers land directly on the broker's login dialog (vs the MetaQuotes generic that needs server selection). The script auto-discovers `terminal64.exe` regardless of which install folder the broker uses.
 
 ---
 
@@ -176,9 +176,9 @@ All via env vars in `deploy/.env`.
 │    • /config volume: persistent Wine prefix + MT5 install     │
 └───────────────────────────────────────────────────────────────┘
                            │
-                           ▼   broker FIX/native protocol
+                           ▼   broker MT5 protocol
                   ┌────────────────┐
-                  │  HFMarkets MT5 │
+                  │  Your broker   │
                   └────────────────┘
 ```
 
@@ -224,7 +224,7 @@ A €5/mo VPS handles it. Avoid GCP container-runtime VMs unless you can disable
 - **GitHub repo is public; `.env` is gitignored.** Always run `git check-ignore deploy/.env` to confirm before committing.
 
 > [!CAUTION]
-> Default config points at a **live** HFMarkets account. For first agent tests, point `MT5_SERVER` at a demo server (e.g. `HFMarketsGlobal-Demo`) before any `/order` permission is granted to non-human callers.
+> **Always test against a demo account first.** Point `MT5_SERVER` at a `*-Demo` server before granting `/order` permission to any non-human caller. Real money is real money.
 
 ---
 

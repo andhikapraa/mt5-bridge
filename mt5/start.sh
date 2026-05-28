@@ -16,9 +16,10 @@ mono_url="https://dl.winehq.org/wine/wine-mono/10.3.0/wine-mono-10.3.0-x86.msi"
 python_url="https://www.python.org/ftp/python/3.9.13/python-3.9.13.exe"
 
 # Broker-branded MT5 installer. Comes pre-configured with the broker's server
-# so the first launch lands directly on the login dialog for HFMarketsGlobal,
+# so the first launch lands directly on the login dialog for the broker,
 # rather than the MetaQuotes generic terminal that needs server selection.
-# Override with MT5_SETUP_URL env var for other brokers.
+# Override MT5_SETUP_URL env var with your broker's installer URL, or use the
+# vanilla one: https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe
 mt5setup_url="${MT5_SETUP_URL:-https://download.terminal.free/cdn/web/12018/mt5/hfmarketsglobal5setup.exe}"
 
 # Auto-discover terminal64.exe across any "Program Files" subfolder, since
