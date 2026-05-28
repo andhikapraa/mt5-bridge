@@ -15,6 +15,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TITLE="mt5-bridge" \
     WINEPREFIX=/config/.wine \
     WINEDEBUG=-all \
+    WINEDLLOVERRIDES="mscoree,mshtml=" \
     PYTHONUNBUFFERED=1 \
     MT5_HOST=127.0.0.1 \
     MT5_PORT=18812 \

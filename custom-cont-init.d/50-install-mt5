@@ -14,7 +14,13 @@
 # perms to the persisted /config volume.
 set -euo pipefail
 
-PREFIX="${WINEPREFIX:-/config/.wine}"
+# cont-init.d strips most env vars; re-export Wine controls explicitly so
+# they reach the wine subprocesses we spawn.
+export WINEPREFIX="${WINEPREFIX:-/config/.wine}"
+export WINEDEBUG="${WINEDEBUG:--all}"
+export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-mscoree,mshtml=}"
+
+PREFIX="${WINEPREFIX}"
 MT5_EXE="${PREFIX}/drive_c/Program Files/MetaTrader 5/terminal64.exe"
 WINE_PYTHON_DIR="${PREFIX}/drive_c/Python311"
 WINE_PYTHON="${WINE_PYTHON_DIR}/python.exe"
