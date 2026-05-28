@@ -146,14 +146,16 @@ def _coerce(v: Any) -> Any:
 def _as_dict(obj: Any) -> dict:
     """MetaTrader5 returns named tuples; turn into plain dicts for JSON.
 
-    Reads each field via getattr (not _asdict()) so RPyC actually fetches the
-    underlying value rather than handing back a lazy proxy; then runs every
-    value through _coerce() to land on a real Python primitive.
+    Uses _asdict() to enumerate fields (RPyC proxies the call correctly),
+    then runs every value through _coerce() to materialise RPyC netrefs into
+    real Python primitives so FastAPI/pydantic can serialise them. The latter
+    is what fixes contract_size showing as null on /symbols/{name}.
     """
     if obj is None:
         return {}
-    if hasattr(obj, "_fields"):
-        return {name: _coerce(getattr(obj, name, None)) for name in obj._fields}
+    if hasattr(obj, "_asdict"):
+        d = obj._asdict()
+        return {str(k): _coerce(v) for k, v in d.items()}
     if isinstance(obj, (list, tuple)):
         return {"items": [_as_dict(x) for x in obj]}
     if isinstance(obj, dict):
