@@ -1,0 +1,29 @@
+shim/requirements.txt
+  s_849d7e3dc007ee::t_a70768b115ec03 1-2,11-14,17
+mt5/Dockerfile
+  s_849d7e3dc007ee::t_054070f6379a1f 1-13
+shim/Dockerfile
+  s_849d7e3dc007ee::t_b7c2ba867fe6c9 1-2,4,7-10,12-15,17,19
+deploy/docker-compose.yml
+  s_849d7e3dc007ee::t_8c121f371ad976 1-7,10-11,15-16,21,28-65,71,75-76
+.github/workflows/build.yml
+  s_849d7e3dc007ee::t_02798eb1b99147 20-26,45-47,58,63-64
+mt5/start.sh
+  s_849d7e3dc007ee::t_6e761c86bf2b77 1-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "9f2d97a571b94968f7e09c9c722caa3bc7467d96",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
