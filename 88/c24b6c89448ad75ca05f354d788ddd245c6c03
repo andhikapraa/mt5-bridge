@@ -1,0 +1,24 @@
+scripts/install_mt5.sh
+  s_849d7e3dc007ee::t_44bce9174503cb 1-2,4-7,26-27,29,32-33,42,44,54,105
+Dockerfile
+  s_849d7e3dc007ee::t_36d842ccd98f21 30
+  s_849d7e3dc007ee::t_aa207fd4c81711 51,53,55-59,61
+custom-services.d/mt5linux
+  s_849d7e3dc007ee::t_c0b0bfe4796ad4 2-5,13-22,25-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "88c24b6c89448ad75ca05f354d788ddd245c6c03",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
