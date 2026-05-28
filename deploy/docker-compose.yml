@@ -30,7 +30,7 @@ services:
 
     volumes:
       # Persists Wine prefix + MT5 install + install markers across restarts.
-      - mt5_config:/config
+      - mt5_data:/config
 
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
@@ -47,4 +47,4 @@ services:
           memory: 2G
 
 volumes:
-  mt5_config:
+  mt5_data:
