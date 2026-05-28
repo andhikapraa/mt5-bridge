@@ -1,0 +1,23 @@
+scripts/entrypoint.sh
+  s_849d7e3dc007ee::t_a6688263b040d0 2-3,9-22
+scripts/install_mt5.sh
+  s_849d7e3dc007ee::t_615c2e0f74c980 59-63
+Dockerfile
+  s_849d7e3dc007ee::t_8355310867772e 10,25-26,41-61,66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1e77061c09a25ff077346a4c0d6f34ee434a36b6",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
