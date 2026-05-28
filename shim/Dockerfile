@@ -5,7 +5,12 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Install mt5linux without its pinned-too-tight transitive deps (numpy==1.21.4
+# has no Python 3.12 wheel). Then install our requirements which pull modern
+# rpyc/plumbum/numpy versions that mt5linux is actually fine with at runtime.
+RUN pip install --no-cache-dir --no-deps mt5linux==0.1.9 && \
+    pip install --no-cache-dir -r /app/requirements.txt
 
 COPY api/ /app/api/
 
