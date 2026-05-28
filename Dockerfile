@@ -55,7 +55,7 @@ COPY requirements-wine.txt /app/requirements-wine.txt
 # /custom-services.d/<name>/run is launched as a long-running service.
 COPY custom-cont-init.d/  /custom-cont-init.d/
 COPY custom-services.d/   /custom-services.d/
-RUN chmod +x /custom-cont-init.d/* /custom-services.d/*/run
+RUN chmod +x /custom-cont-init.d/* /custom-services.d/*
 
 EXPOSE 3000 8000 8001
 

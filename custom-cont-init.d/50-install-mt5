@@ -26,6 +26,20 @@ WINEPATH_FILE="${MARKER_DIR}/wine_python_path"
 log() { printf '[install_mt5] %s\n' "$*" >&2; }
 trap 'log "FAILED line $LINENO: rc=$? cmd: $BASH_COMMAND"' ERR
 
+# Wine refuses to use a prefix not owned by the current user. cont-init runs
+# as root, but linuxserver chowns /config to abc (911:911). Take ownership
+# for the install, then hand it back so services (which run as abc) can use it.
+log "taking /config ownership for install"
+chown -R root:root /config
+
+# Restore on exit (whether success or failure). abc is the linuxserver UID 911.
+restore_owner() {
+  log "restoring /config ownership to abc:abc"
+  chown -R abc:abc /config || true
+}
+trap 'restore_owner; log "FAILED line $LINENO: rc=$? cmd: $BASH_COMMAND"' ERR
+trap 'restore_owner' EXIT
+
 # Reconcile: a stale marker without its artefact is worse than no marker.
 [[ -f "${MARKER_DIR}/pip.ok"   && ! -x "${WINE_PYTHON}" ]] && rm -f "${MARKER_DIR}/pip.ok"
 [[ -f "${MARKER_DIR}/python.ok" && ! -x "${WINE_PYTHON}" ]] && rm -f "${MARKER_DIR}/python.ok"
