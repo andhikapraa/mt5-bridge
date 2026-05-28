@@ -82,9 +82,14 @@ class MT5Proxy:
     # ---- health ----
 
     async def is_alive(self) -> tuple[bool, dict | None]:
+        # Hard 3-second cap. If MT5 terminal isn't running, the RPyC call
+        # blocks indefinitely and turns /health into a forever-hang.
         try:
-            info = await self.call("account_info")
+            info = await asyncio.wait_for(self.call("account_info"), timeout=3.0)
             return (info is not None), (_as_dict(info) if info else None)
+        except asyncio.TimeoutError:
+            log.warning("health probe timed out after 3s — MT5 terminal likely not running")
+            return False, None
         except Exception as e:  # noqa: BLE001
             log.debug("health probe failed: %s", e)
             return False, None
