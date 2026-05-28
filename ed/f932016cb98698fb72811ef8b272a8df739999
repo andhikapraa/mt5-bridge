@@ -1,0 +1,21 @@
+scripts/install_mt5.sh
+  s_849d7e3dc007ee::t_a84aed5aecfb9f 6,9-10,15-18,27,29-52,55-56,58,62,64-66,68-69,72,75,77-79,81-82,84,90-91,97-101,103-112,114-130,132,135,137-143,145,151
+deploy/docker-compose.yml
+  s_849d7e3dc007ee::t_fb8a8dd8c595c5 33,50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "edf932016cb98698fb72811ef8b272a8df739999",
+  "prompts": {},
+  "sessions": {
+    "s_849d7e3dc007ee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "37375f41-2e15-4266-82f0-2f6b2a211a32",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Muhammad Andhika Prasetya <andhikapraa@gmail.com>"
+    }
+  }
+}
