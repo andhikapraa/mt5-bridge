@@ -56,15 +56,11 @@ reconcile
 debug_dump
 
 # ---- 0. Wineboot ----
-# `timeout` is hard cap — wineboot should finish in <60s. If it hangs longer,
-# we'd rather fail loud than have the container appear stuck forever.
-if [[ ! -f "${WINEBOOT_MARKER}" ]]; then
-  log "wineboot --init (timeout 120s)..."
-  timeout 120 wine wineboot --init 2>&1 | sed 's/^/[wineboot] /' >&2 || {
-    rc=$?
-    log "wineboot exited rc=${rc} (timeout=124 means hung); continuing anyway"
-  }
-  touch "${WINEBOOT_MARKER}"
+# Skipped: the prefix is now seeded from a build-time template by entrypoint.sh.
+# If somehow it's still raw, fall back to wineboot here.
+if [[ ! -f "${PREFIX}/system.reg" ]]; then
+  log "WARN: prefix not seeded from template; running wineboot fallback"
+  timeout 120 wine wineboot --init 2>&1 | sed 's/^/[wineboot] /' >&2 || true
 fi
 
 # ---- 1. MT5 terminal ----
